@@ -6,6 +6,10 @@ __pycache__/
 # C extensions
 *.so
 
+*.zip
+*.npz
+lisa_dataset/
+
 # Distribution / packaging
 .Python
 build/
