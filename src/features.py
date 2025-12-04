@@ -76,8 +76,8 @@ def extract_dataset_features(image_folder):
 
 
 if __name__ == "__main__":
-    train_dir = "C:/Users/eshaa/MLProject/capstone-us-traffic-sign-recognition/lisa_dataset/lisa/train"
-    val_dir   = "C:/Users/eshaa/MLProject/capstone-us-traffic-sign-recognition/lisa_dataset/lisa/val"
+    train_dir = "data/lisa/train"
+    val_dir   = "data/lisa/val"
 
     print("Extracting TRAIN features...")
     X_train, y_train = extract_dataset_features(train_dir)
