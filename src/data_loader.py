@@ -1,3 +1,5 @@
+#TrafficLightDataset - pytorch dataset loads our cropped images with csv
+#each csv has filepath and lavel, and classes r red yellow green and inactive
 import pandas as pd
 import torch
 from torch.utils.data import Dataset, DataLoader

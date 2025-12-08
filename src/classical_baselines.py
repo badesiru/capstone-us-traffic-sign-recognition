@@ -1,3 +1,6 @@
+#this trains SVM, Random forest, and KNN, and we wanted to evaluate models
+#displays accuracy, classification report, and confusion matrix
+import os
 import numpy as np
 from sklearn.svm import SVC
 from sklearn.ensemble import RandomForestClassifier
@@ -12,20 +15,19 @@ from sklearn.metrics import (
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-
-#Loading feature data
-train_data = np.load("traffic_light_features_train.npz")
-val_data   = np.load("traffic_light_features_val.npz")
-
+BASE_DIR = os.path.dirname(os.path.dirname(__file__)) 
+#loading the feature data
+train_data = np.load(os.path.join(BASE_DIR, "traffic_light_features_train.npz"))
+val_data   = np.load(os.path.join(BASE_DIR, "traffic_light_features_val.npz"))
 X_train, y_train = train_data["X"], train_data["y"]
 X_val, y_val     = val_data["X"], val_data["y"]
 
-print("Data loaded successfully!")
-print(f"Training samples: {X_train.shape[0]}, Validation samples: {X_val.shape[0]}")
-print(f"Feature vector length: {X_train.shape[1]}\n")
+
+print(f"Training samples -  {X_train.shape[0]}, Validation samples - {X_val.shape[0]}")
+print(f"Feature vector length - {X_train.shape[1]}\n")
 
 
-#Uncomment to train each model
+
 
 #SVM
 svm_model = SVC(kernel='rbf', C=10, gamma='scale', random_state=42)
@@ -37,7 +39,7 @@ rf_model = RandomForestClassifier(n_estimators=150, random_state=42)
 knn_model = KNeighborsClassifier(n_neighbors=5)
 
 
-#Training the models
+#training the models
 models = {
     "SVM": svm_model,
     "Random Forest": rf_model,
@@ -47,19 +49,19 @@ models = {
 results = {}
 
 for name, model in models.items():
-    print(f"[INFO] Training {name}...")
+    print(f"Training:{name}")
     model.fit(X_train, y_train)
     
-    #Make predictions
+    #make predictions
     y_pred = model.predict(X_val)
     
-    #Compute accuracy and store
+    #compute accuracy and store
     acc = accuracy_score(y_val, y_pred)
     results[name] = acc
     
-    print(f"\n--- {name} RESULTS ---")
-    print(f"Accuracy: {acc:.4f}")
-    print("\nClassification Report:")
+    print(f"\n{name} Results")
+    print(f"Accuracy:{acc:.4f}")
+    print("\nClassification report:")
     print(classification_report(y_val, y_pred))
     
     # Confusion matrix visualization
@@ -75,7 +77,15 @@ for name, model in models.items():
 
 
 #Prining summary of results
-print("\n==================== Summary ====================")
+print("\nSummary")
 for name, acc in results.items():
     print(f"{name}: {acc:.4f}")
-print("=================================================\n")
+#saving to csv
+results_df = pd.DataFrame([
+    {"model": "SVM", "accuracy": results["SVM"]},
+    {"model": "RF", "accuracy": results["Random Forest"]},
+    {"model": "KNN", "accuracy": results["KNN"]},
+])
+
+results_df.to_csv("traffic_light_baseline_results.csv", index=False)
+print("\nsaved traffic_light_baseline_results.csv")

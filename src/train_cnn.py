@@ -1,4 +1,5 @@
 import os
+import csv
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -9,17 +10,20 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
 
-# Configurations
-DATA_DIR = "data/lisa"
+
+
+DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "lisa")
+
 BATCH_SIZE = 32
 LR = 1e-3
 EPOCHS = 10
+#making it 64x64
 IMAGE_SIZE = 64
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print(f"[INFO] Using device: {device}")
 
-# Data transforms
+
+#transforms
 train_transforms = transforms.Compose([
     transforms.Resize((IMAGE_SIZE, IMAGE_SIZE)),
     transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4),
@@ -33,7 +37,7 @@ val_transforms = transforms.Compose([
     transforms.ToTensor(),
 ])
 
-# Datasets and loaders
+#datasates and loaders
 train_dataset = datasets.ImageFolder(os.path.join(DATA_DIR, "train"), transform=train_transforms)
 val_dataset = datasets.ImageFolder(os.path.join(DATA_DIR, "val"), transform=val_transforms)
 
@@ -43,7 +47,7 @@ val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False)
 class_names = train_dataset.classes
 print(f"[INFO] Classes: {class_names}")
 
-# CNN model
+#cNN 
 class TrafficCNN(nn.Module):
     def __init__(self, num_classes=3):
         super(TrafficCNN, self).__init__()
@@ -77,9 +81,9 @@ model = TrafficCNN(num_classes=3).to(device)
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=LR)
 
-# training loop
+#trining loop
 def train():
-    print("[INFO] Starting training...")
+    results = [] 
     for epoch in range(EPOCHS):
         model.train()
         total_loss = 0
@@ -94,10 +98,50 @@ def train():
             optimizer.step()
 
             total_loss += loss.item()
+        avg_train_loss = total_loss / len(train_loader)
 
-        print(f"Epoch [{epoch+1}/{EPOCHS}] - Loss: {total_loss / len(train_loader):.4f}")
+        #validaiton
+        model.eval()
+        val_loss = 0
+        correct = 0
+        total = 0
 
-# validation confusion matrix
+        with torch.no_grad():
+            for imgs, labels in val_loader:
+                imgs, labels = imgs.to(device), labels.to(device)
+                outputs = model(imgs)
+
+                #loss
+                loss = criterion(outputs, labels)
+                val_loss += loss.item()
+
+                #accuracy
+                _, predicted = torch.max(outputs, 1)
+                correct += (predicted == labels).sum().item()
+                total += labels.size(0)
+
+        avg_val_loss = val_loss / len(val_loader)
+        val_accuracy = correct / total
+
+
+        print(f"epoch [{epoch+1}/{EPOCHS}]-loss -{avg_train_loss:.4f} | "
+              f"val_loss{avg_val_loss:.4f} | val_acc {val_accuracy:.4f}")
+
+        #stores my metrics
+        results.append([epoch+1, avg_train_loss, avg_val_loss, val_accuracy])
+
+    #saveing it to csv
+    os.makedirs("experiments/results", exist_ok=True)
+    csv_path = "experiments/results/cnn_epoch_metrics.csv"
+
+    with open(csv_path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["epoch", "train_loss", "val_loss", "val_accuracy"])
+        writer.writerows(results)
+
+    print(f"Metrics saved to {csv_path}")
+
+
 def evaluate():
     model.eval()
     preds, true = [], []
@@ -124,4 +168,4 @@ if __name__ == "__main__":
     train()
     evaluate()
     torch.save(model.state_dict(), "cnn_model.pth")
-    print("[INFO] Saved model as cnn_model.pth")
+
